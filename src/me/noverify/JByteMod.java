@@ -49,16 +49,18 @@ import javax.swing.tree.TreePath;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.Theme;
 import org.fife.ui.rtextarea.RTextScrollPane;
-import org.jetbrains.java.decompiler.main.Fernflower;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.LdcInsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 
 import me.lpk.util.JarUtils;
+import me.lpk.util.OpUtils;
 import me.noverify.list.CellRenderer;
 import me.noverify.list.FieldListEntry;
 import me.noverify.list.InsnListEntry;
@@ -108,6 +110,9 @@ public class JByteMod extends JFrame {
 	private JMenu mnDecompiler;
 	private JCheckBoxMenuItem chckbxmntmRefreshDecompiler;
 	private JCheckBoxMenuItem chckbxmntmDeclarationTreeSelection;
+	private JMenu mnSearch;
+	private JMenuItem mntmSearchMethodinsnnode;
+	private JMenuItem mntmSearchFieldinsn;
 
 	/**
 	 * Launch the application.
@@ -148,7 +153,7 @@ public class JByteMod extends JFrame {
 			}
 		});
 		setBounds(100, 100, 1280, 720);
-		setTitle("JByteMod v0.5.0");
+		setTitle("JByteMod v0.5.1");
 
 		menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
@@ -161,6 +166,8 @@ public class JByteMod extends JFrame {
 			public void actionPerformed(ActionEvent e) {
 				if (opened != null) {
 					saveJarFile(opened);
+				} else {
+					EditDialogue.error("Open a jar file first.");
 				}
 			}
 		});
@@ -172,6 +179,8 @@ public class JByteMod extends JFrame {
 			public void actionPerformed(ActionEvent e) {
 				if (opened != null) {
 					saveAsFileChooser();
+				} else {
+					EditDialogue.error("Open a jar file first.");
 				}
 			}
 		});
@@ -201,7 +210,11 @@ public class JByteMod extends JFrame {
 		mnTools = new JMenu("Tools");
 		menuBar.add(mnTools);
 
-		mntmSearch = new JMenuItem("Search");
+		mnSearch = new JMenu("Search");
+		mnTools.add(mnSearch);
+
+		mntmSearch = new JMenuItem("Search LDC");
+		mnSearch.add(mntmSearch);
 		mntmSearch.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if (classes == null) {
@@ -228,7 +241,72 @@ public class JByteMod extends JFrame {
 			}
 		});
 		mntmSearch.setAccelerator(KeyStroke.getKeyStroke('H', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
-		mnTools.add(mntmSearch);
+
+		mntmSearchMethodinsnnode = new JMenuItem("Search MethodInsn");
+		mntmSearchMethodinsnnode.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if (classes == null) {
+					EditDialogue.error("Open a jar file first.");
+					return;
+				}
+				final JPanel panel = new JPanel(new BorderLayout(5, 5));
+				final JPanel input = new JPanel(new GridLayout(0, 1));
+				final JPanel labels = new JPanel(new GridLayout(0, 1));
+				panel.add(labels, "West");
+				panel.add(input, "Center");
+				panel.add(new JLabel("Warning: This could take some time\n on big jars!"), "South");
+				labels.add(new JLabel("Owner:"));
+				JTextField owner = new JTextField();
+				input.add(owner);
+				labels.add(new JLabel("Name:"));
+				JTextField name = new JTextField();
+				input.add(name);
+				labels.add(new JLabel("Desc:"));
+				JTextField desc = new JTextField();
+				input.add(desc);
+				JCheckBox exact = new JCheckBox("Exact");
+				labels.add(exact);
+				input.add(new JPanel());
+				if (JOptionPane.showConfirmDialog(JByteMod.instance, panel, "Search MethodInsnNode", 2) == JOptionPane.OK_OPTION
+						&& !(name.getText().isEmpty() && owner.getText().isEmpty() && desc.getText().isEmpty())) {
+					searchForMethodInsn(owner.getText(), name.getText(), desc.getText(), exact.isSelected());
+				}
+			}
+		});
+		mnSearch.add(mntmSearchMethodinsnnode);
+
+		mntmSearchFieldinsn = new JMenuItem("Search FieldInsn");
+		mntmSearchFieldinsn.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if (classes == null) {
+					EditDialogue.error("Open a jar file first.");
+					return;
+				}
+				final JPanel panel = new JPanel(new BorderLayout(5, 5));
+				final JPanel input = new JPanel(new GridLayout(0, 1));
+				final JPanel labels = new JPanel(new GridLayout(0, 1));
+				panel.add(labels, "West");
+				panel.add(input, "Center");
+				panel.add(new JLabel("Warning: This could take some time\n on big jars!"), "South");
+				labels.add(new JLabel("Owner:"));
+				JTextField owner = new JTextField();
+				input.add(owner);
+				labels.add(new JLabel("Name:"));
+				JTextField name = new JTextField();
+				input.add(name);
+				labels.add(new JLabel("Desc:"));
+				JTextField desc = new JTextField();
+				input.add(desc);
+				JCheckBox exact = new JCheckBox("Exact");
+				labels.add(exact);
+				input.add(new JPanel());
+				if (JOptionPane.showConfirmDialog(JByteMod.instance, panel, "Search FieldInsnNode", 2) == JOptionPane.OK_OPTION
+						&& !(name.getText().isEmpty() && owner.getText().isEmpty() && desc.getText().isEmpty())) {
+					searchForFieldInsn(owner.getText(), name.getText(), desc.getText(), exact.isSelected());
+				}
+			}
+		});
+		mnSearch.add(mntmSearchFieldinsn);
 
 		mnNewMenu = new JMenu("Utils");
 		mnTools.add(mnNewMenu);
@@ -236,8 +314,10 @@ public class JByteMod extends JFrame {
 		mntmSelectClassBy = new JMenuItem("Select Class by SourceFile");
 		mntmSelectClassBy.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				if (classes == null)
+				if (classes == null) {
+					EditDialogue.error("Open a jar file first.");
 					return;
+				}
 				final JPanel panel = new JPanel(new BorderLayout(5, 5));
 				final JPanel input = new JPanel(new GridLayout(0, 1));
 				final JPanel labels = new JPanel(new GridLayout(0, 1));
@@ -265,8 +345,10 @@ public class JByteMod extends JFrame {
 		mntmSelectClassBy_1 = new JMenuItem("Select Class by Name");
 		mntmSelectClassBy_1.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				if (classes == null)
+				if (classes == null) {
+					EditDialogue.error("Open a jar file first.");
 					return;
+				}
 				final JPanel panel = new JPanel(new BorderLayout(5, 5));
 				final JPanel input = new JPanel(new GridLayout(0, 1));
 				final JPanel labels = new JPanel(new GridLayout(0, 1));
@@ -277,7 +359,7 @@ public class JByteMod extends JFrame {
 				JTextField cst = new JTextField();
 				input.add(cst);
 				if (JOptionPane.showConfirmDialog(JByteMod.instance, panel, "Select Class by Name", 2) == JOptionPane.OK_OPTION
-						&& !cst.getText().isEmpty()) {
+						&& !(cst.getText().isEmpty())) {
 					for (ClassNode cn : classes.values()) {
 						if (cn.name != null) {
 							if (cn.name.equals(cst.getText())) {
@@ -386,6 +468,62 @@ public class JByteMod extends JFrame {
 		contentPane.add(border, BorderLayout.CENTER);
 	}
 
+	protected void searchForFieldInsn(String owner, String name, String desc, boolean exact) {
+		searchDesc.setText("Results for FieldInsnNode[owner=" + (owner.isEmpty() ? "null" : owner) + ", name="
+				+ (name.isEmpty() ? "null" : name) + ", desc=" + (desc.isEmpty() ? "null" : desc) + "]");
+		rightSide.setSelectedIndex(3);
+		DefaultListModel<SearchListEntry> lm = (DefaultListModel<SearchListEntry>) searchList.getModel();
+		lm.clear();
+		for (ClassNode c : classes.values()) {
+			for (MethodNode m : c.methods) {
+				for (AbstractInsnNode ain : m.instructions.toArray()) {
+					if (ain instanceof FieldInsnNode) {
+						FieldInsnNode fin = (FieldInsnNode) ain;
+						if (exact) {
+							if (fin.owner.equals(owner) && fin.name.equals(name) && fin.desc.equals(desc)) {
+								lm.addElement(new SearchListEntry(c, m, fin.owner, fin.name, fin.desc,
+										OpUtils.getOpcodeText(fin.getOpcode()).toLowerCase()));
+							}
+						} else {
+							if (fin.owner.contains(owner) && fin.name.contains(name) && fin.desc.contains(desc)) {
+								lm.addElement(new SearchListEntry(c, m, fin.owner, fin.name, fin.desc,
+										OpUtils.getOpcodeText(fin.getOpcode()).toLowerCase()));
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	protected void searchForMethodInsn(String owner, String name, String desc, boolean exact) {
+		searchDesc.setText("Results for MethodInsnNode[owner=" + (owner.isEmpty() ? "null" : owner) + ", name="
+				+ (name.isEmpty() ? "null" : name) + ", desc=" + (desc.isEmpty() ? "null" : desc) + "]");
+		rightSide.setSelectedIndex(3);
+		DefaultListModel<SearchListEntry> lm = (DefaultListModel<SearchListEntry>) searchList.getModel();
+		lm.clear();
+		for (ClassNode c : classes.values()) {
+			for (MethodNode m : c.methods) {
+				for (AbstractInsnNode ain : m.instructions.toArray()) {
+					if (ain instanceof MethodInsnNode) {
+						MethodInsnNode min = (MethodInsnNode) ain;
+						if (exact) {
+							if (min.owner.equals(owner) && min.name.equals(name) && min.desc.equals(desc)) {
+								lm.addElement(new SearchListEntry(c, m, min.owner, min.name, min.desc,
+										OpUtils.getOpcodeText(min.getOpcode()).toLowerCase()));
+							}
+						} else {
+							if (min.owner.contains(owner) && min.name.contains(name) && min.desc.contains(desc)) {
+								lm.addElement(new SearchListEntry(c, m, min.owner, min.name, min.desc,
+										OpUtils.getOpcodeText(min.getOpcode()).toLowerCase()));
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	protected void searchForMainClasses() {
 		if (classes == null)
 			return;
@@ -404,7 +542,7 @@ public class JByteMod extends JFrame {
 
 	protected void searchForCst(String search, boolean exact, boolean caseSens) {
 		searchDesc.setText("Results for \"" + search + "\"");
-		rightSide.setSelectedIndex(4);
+		rightSide.setSelectedIndex(3);
 		DefaultListModel<SearchListEntry> lm = (DefaultListModel<SearchListEntry>) searchList.getModel();
 		lm.clear();
 		if (!caseSens) {

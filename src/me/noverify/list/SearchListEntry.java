@@ -21,11 +21,19 @@ public class SearchListEntry extends ListEntry {
 		this.found = found;
 	}
 
-	public SearchListEntry(ClassNode c, MethodNode m) {
-		super(TextUtils.toHtml(DisplayUtils.getDisplayClass(c.name) + "." + TextUtils.escape(m.name)));
-		this.cn = c;
-		this.mn = m;
+	public SearchListEntry(ClassNode cn, MethodNode mn) {
+		super(TextUtils.toHtml(DisplayUtils.getDisplayClass(cn.name) + "." + TextUtils.escape(mn.name)));
+		this.cn = cn;
+		this.mn = mn;
 		this.found = "";
+	}
+
+	public SearchListEntry(ClassNode cn, MethodNode mn, String owner, String name, String desc, String opcode) {
+		super(TextUtils.toHtml(DisplayUtils.getDisplayClass(cn.name) + "." + TextUtils.escape(mn.name) + " - " + TextUtils.toBold(opcode)
+				+ " " + DisplayUtils.getDisplayClassRed(owner) + "." + TextUtils.escape(name) + "(" + DisplayUtils.getDisplayArgs(TextUtils.escape(desc)) + ")"));
+		this.cn = cn;
+		this.mn = mn;
+		this.found = owner + "." + name + desc;
 	}
 
 	public ClassNode getCn() {
