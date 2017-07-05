@@ -64,6 +64,7 @@ import me.lpk.gui.drop.JarDropHandler;
 import me.lpk.util.JarUtils;
 import me.lpk.util.OpUtils;
 import me.noverify.list.CellRenderer;
+import me.noverify.list.DndMouseAdapter;
 import me.noverify.list.FieldListEntry;
 import me.noverify.list.InsnListEntry;
 import me.noverify.list.ListEntry;
@@ -116,6 +117,7 @@ public class JByteMod extends JFrame implements IDropUser {
 	private JMenuItem mntmSearchMethodinsnnode;
 	private JMenuItem mntmSearchFieldinsn;
 	private JMenuItem mntmRenameSourcefilesTo;
+	private JCheckBoxMenuItem chckbxmntmBytecodeDragAnd;
 
 	/**
 	 * Launch the application.
@@ -415,6 +417,10 @@ public class JByteMod extends JFrame implements IDropUser {
 		chckbxmntmDeclarationTreeSelection = new JCheckBoxMenuItem("Declaration Tree Selection");
 		chckbxmntmDeclarationTreeSelection.setSelected(true);
 		mnSettings.add(chckbxmntmDeclarationTreeSelection);
+		
+		chckbxmntmBytecodeDragAnd = new JCheckBoxMenuItem("Bytecode Drag and Drop");
+		chckbxmntmBytecodeDragAnd.setSelected(true);
+		mnSettings.add(chckbxmntmBytecodeDragAnd);
 
 		mnDecompiler = new JMenu("Decompiler");
 		mnSettings.add(mnDecompiler);
@@ -788,6 +794,10 @@ public class JByteMod extends JFrame implements IDropUser {
 				}
 			}
 		});
+		DndMouseAdapter adapter = new DndMouseAdapter(codeList);
+		codeList.addMouseListener(adapter);
+		codeList.addMouseMotionListener(adapter);
+
 		tcbList = new JList<TCBListEntry>(new DefaultListModel());
 		tcbList.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 13));
 		tcbList.addMouseListener(new MouseAdapter() {
@@ -977,4 +987,7 @@ public class JByteMod extends JFrame implements IDropUser {
 		loadJarFile(input);
 	}
 
+	public boolean editorDnd() {
+		return chckbxmntmBytecodeDragAnd.isSelected();
+	}
 }

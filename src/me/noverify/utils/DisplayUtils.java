@@ -66,7 +66,7 @@ public class DisplayUtils {
 			opc = TextUtils.toLight(OpUtils.getOpcodeText(fn.type).toLowerCase() + " " + fn.local.size() + " " + fn.stack.size());
 			break;
 		}
-		return TextUtils.toHtml(opc);
+		return opc;
 	}
 
 	public static String getDisplayClass(String str) {

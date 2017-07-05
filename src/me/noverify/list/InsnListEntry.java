@@ -4,10 +4,12 @@ import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import me.noverify.utils.DisplayUtils;
+import me.noverify.utils.TextUtils;
 
 public class InsnListEntry extends ListEntry {
 	protected AbstractInsnNode node;
 	private MethodNode method;
+	public boolean dragging;
 
 	public MethodNode getMethod() {
 		return method;
@@ -29,6 +31,7 @@ public class InsnListEntry extends ListEntry {
 
 	@Override
 	public String getText() {
-		return DisplayUtils.getNodeText(node);
+		String txt = DisplayUtils.getNodeText(node);
+		return TextUtils.toHtml(dragging ? TextUtils.toItalics(txt) : txt);
 	}
 }

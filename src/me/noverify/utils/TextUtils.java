@@ -25,4 +25,8 @@ public class TextUtils {
 	public static String escape(String str) {
 		return str.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
 	}
+
+	public static String toItalics(String str) {
+		return addTag(str, "i");
+	}
 }
