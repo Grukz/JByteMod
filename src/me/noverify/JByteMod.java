@@ -156,7 +156,7 @@ public class JByteMod extends JFrame implements IDropUser {
 			}
 		});
 		setBounds(100, 100, 1280, 720);
-		setTitle("JByteMod v0.5.1");
+		setTitle("JByteMod v0.5.2");
 
 		menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
