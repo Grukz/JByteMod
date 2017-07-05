@@ -59,6 +59,8 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 
+import me.lpk.gui.drop.IDropUser;
+import me.lpk.gui.drop.JarDropHandler;
 import me.lpk.util.JarUtils;
 import me.lpk.util.OpUtils;
 import me.noverify.list.CellRenderer;
@@ -74,7 +76,7 @@ import me.noverify.utils.MethodUtils;
 import me.noverify.utils.PopupMenu;
 import me.noverify.utils.SortedTreeNode;
 
-public class JByteMod extends JFrame {
+public class JByteMod extends JFrame implements IDropUser {
 
 	private JPanel contentPane;
 	private JTree fileTree;
@@ -113,6 +115,7 @@ public class JByteMod extends JFrame {
 	private JMenu mnSearch;
 	private JMenuItem mntmSearchMethodinsnnode;
 	private JMenuItem mntmSearchFieldinsn;
+	private JMenuItem mntmRenameSourcefilesTo;
 
 	/**
 	 * Launch the application.
@@ -381,6 +384,22 @@ public class JByteMod extends JFrame {
 		});
 		mnNewMenu.add(mntmFindMainClasses);
 
+		mntmRenameSourcefilesTo = new JMenuItem("Rename SourceFiles to debug");
+		mntmRenameSourcefilesTo.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				
+				if (JOptionPane.showConfirmDialog(JByteMod.this,
+						"Are you sure that you want to rename all SourceFile attributes to debug names?", "Confirm",
+						JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+					int i = 0;
+					for (ClassNode c : classes.values()) {
+						c.sourceFile = "Class" + (i++) + ".java";
+					}
+				}
+			}
+		});
+		mnNewMenu.add(mntmRenameSourcefilesTo);
+
 		mnSettings = new JMenu("Settings");
 		menuBar.add(mnSettings);
 
@@ -447,6 +466,7 @@ public class JByteMod extends JFrame {
 				}
 			}
 		});
+		fileTree.setTransferHandler(new JarDropHandler(this, 0));
 		rightSide = new JTabbedPane();
 		leftSide = new JPanel();
 		leftSide.setLayout(new BorderLayout(0, 0));
@@ -944,6 +964,17 @@ public class JByteMod extends JFrame {
 			classes.put(cn.name, cn);
 			decompileClass(cn);
 		}
+	}
+
+	@Override
+	public void preLoadJars(int id) {
+	}
+
+	@Override
+	public void onJarLoad(int id, File input) {
+		this.opened = input;
+		System.out.println("Selected input jar: " + input.getAbsolutePath());
+		loadJarFile(input);
 	}
 
 }
