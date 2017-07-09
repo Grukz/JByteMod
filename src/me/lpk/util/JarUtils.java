@@ -76,6 +76,7 @@ public class JarUtils {
 				if (cafebabe.toLowerCase().equals("cafebabe")) {
 					try {
 						final ClassNode cn = ASMUtils.getNode(bytes);
+						cn.extraBytes = en.getExtra();
 						if (cn != null && (cn.name.equals("java/lang/Object") ? true : cn.superName != null)) {
 							for (MethodNode mn : cn.methods) {
 								mn.owner = cn.name;
@@ -129,12 +130,16 @@ public class JarUtils {
 	 * @param outBytes
 	 * @param fileName
 	 */
-	public static void saveAsJar(Map<String, byte[]> outBytes, String fileName) {
+	public static void saveAsJar(Map<String, byte[]> outBytes, String fileName, Map<String, byte[]> extras) {
 		try {
 			JarOutputStream out = new JarOutputStream(new java.io.FileOutputStream(fileName));
 			for (String entry : outBytes.keySet()) {
 				String ext = entry.contains(".") ? "" : ".class";
-				out.putNextEntry(new ZipEntry(entry + ext));
+				ZipEntry zipEntry = new ZipEntry(entry + ext);
+				if(extras.containsKey(entry)) {
+					zipEntry.setExtra(extras.get(entry));
+				}
+				out.putNextEntry(zipEntry);
 				out.write(outBytes.get(entry));
 				out.closeEntry();
 			}

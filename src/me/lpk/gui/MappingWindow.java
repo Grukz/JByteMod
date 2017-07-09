@@ -438,7 +438,7 @@ public class MappingWindow {
 			}
 		}
 		System.out.println("Saving...  [Ranemed " + renamed + " classes]");
-		JarUtils.saveAsJar(out, nonEntriesJar.getName() + "_correlated.jar");
+		JarUtils.saveAsJar(out, nonEntriesJar.getName() + "_correlated.jar", new HashMap<>());
 	}
 
 	private JFileChooser getFileChooser() {

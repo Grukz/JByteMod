@@ -14,6 +14,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.swing.DefaultListModel;
@@ -158,7 +159,7 @@ public class JByteMod extends JFrame implements IDropUser {
 			}
 		});
 		setBounds(100, 100, 1280, 720);
-		setTitle("JByteMod v0.5.2");
+		setTitle("JByteMod v0.5.3");
 
 		menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
@@ -653,15 +654,17 @@ public class JByteMod extends JFrame implements IDropUser {
 	}
 
 	private void saveJarFile(File op) {
+		HashMap<String, byte[]> extras = new HashMap<>();
 		System.out.println("Writing..");
 		for (String s : classes.keySet()) {
 			ClassNode node = classes.get(s);
 			ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
 			node.accept(writer);
 			this.output.put(s, writer.toByteArray());
+			extras.put(s, node.extraBytes);
 		}
 		System.out.println("Saving..");
-		JarUtils.saveAsJar(output, op.getAbsolutePath());
+		JarUtils.saveAsJar(output, op.getAbsolutePath(), extras);
 		System.out.println("Done!");
 	}
 
@@ -937,11 +940,12 @@ public class JByteMod extends JFrame implements IDropUser {
 	}
 
 	public void reloadList(MethodNode mn) {
-		DefaultListModel<ListEntry> lm = (DefaultListModel<ListEntry>) codeList.getModel();
-		lm.clear();
+		//create new model because using old one is slow
+		DefaultListModel<ListEntry> lm = new DefaultListModel<ListEntry>();
 		for (AbstractInsnNode ain : mn.instructions.toArray()) {
 			lm.addElement(new InsnListEntry(mn, ain));
 		}
+		codeList.setModel(lm);
 		if (chckbxmntmRefreshDecompiler.isSelected()) {
 			if (chckbxmntmDecompile.isSelected()) {
 				new DecompileMethodThread(mn).start();

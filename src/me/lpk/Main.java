@@ -35,6 +35,6 @@ public class Main {
 		Map<String, byte[]> out = MappingProcessor.process(lsm.getNodes(), new HashMap<String, MappedClass>(), true);
 		out.putAll(JarUtils.loadNonClassEntries(jar));
 		Logger.logLow("Saving...");
-		JarUtils.saveAsJar(out, jar.getName() + "-re.jar");
+		JarUtils.saveAsJar(out, jar.getName() + "-re.jar", new HashMap<>());
 	}
 }
