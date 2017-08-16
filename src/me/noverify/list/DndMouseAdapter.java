@@ -14,6 +14,7 @@ public class DndMouseAdapter extends MouseInputAdapter {
 	private int dragSourceIndex;
 	private JList myList;
 	private DefaultListModel myListModel;
+	private boolean backup;
 
 	public DndMouseAdapter(JList list) {
 		this.myList = list;
@@ -25,6 +26,7 @@ public class DndMouseAdapter extends MouseInputAdapter {
 		if (SwingUtilities.isLeftMouseButton(e)) {
 			dragSourceIndex = myList.getSelectedIndex();
 			mouseDragging = true;
+			backup = false;
 		}
 	}
 
@@ -44,6 +46,11 @@ public class DndMouseAdapter extends MouseInputAdapter {
 		if (mouseDragging && JByteMod.instance.editorDnd()) {
 			int currentIndex = myList.locationToIndex(e.getPoint());
 			if (currentIndex != dragSourceIndex) {
+				if(!backup) {
+					JByteMod.instance.createUndoBackup();
+					backup = true;
+					System.out.println("yes");
+				}
 				int dragTargetIndex = myList.getSelectedIndex();
 				Object dragElement = myListModel.get(dragSourceIndex);
 				if(dragElement instanceof InsnListEntry) {

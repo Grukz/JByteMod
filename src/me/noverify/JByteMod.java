@@ -14,7 +14,9 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.swing.DefaultListModel;
@@ -36,6 +38,7 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.JTree;
 import javax.swing.KeyStroke;
+import javax.swing.ListModel;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
@@ -55,6 +58,7 @@ import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.FieldNode;
+import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -119,6 +123,8 @@ public class JByteMod extends JFrame implements IDropUser {
 	private JMenuItem mntmSearchFieldinsn;
 	private JMenuItem mntmRenameSourcefilesTo;
 	private JCheckBoxMenuItem chckbxmntmBytecodeDragAnd;
+	private JMenuItem mntmUndo;
+	private ArrayList<InsnListEntry> lastList;
 
 	/**
 	 * Launch the application.
@@ -154,12 +160,12 @@ public class JByteMod extends JFrame implements IDropUser {
 			public void windowClosing(WindowEvent we) {
 				if (JOptionPane.showConfirmDialog(instance, "Do you really want to exit? All unsaved changes will be lost.", "Are you sure?",
 						JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-					System.exit(0);
+					Runtime.getRuntime().exit(0);
 				}
 			}
 		});
 		setBounds(100, 100, 1280, 720);
-		setTitle("JByteMod v0.5.3");
+		setTitle("JByteMod v0.5.4");
 
 		menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
@@ -215,6 +221,24 @@ public class JByteMod extends JFrame implements IDropUser {
 
 		mnTools = new JMenu("Tools");
 		menuBar.add(mnTools);
+
+		mntmUndo = new JMenuItem("Undo");
+		mntmUndo.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if (lastList != null) {
+					DefaultListModel<ListEntry> list = (DefaultListModel<ListEntry>) JByteMod.instance.codeList.getModel();
+					list.clear();
+					for (InsnListEntry entry : lastList) {
+						list.addElement(entry);
+					}
+				}
+				lastList = null;
+				mntmUndo.setEnabled(false);
+			}
+		});
+		mntmUndo.setEnabled(false);
+		mntmUndo.setAccelerator(KeyStroke.getKeyStroke('Z', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+		mnTools.add(mntmUndo);
 
 		mnSearch = new JMenu("Search");
 		mnTools.add(mnSearch);
@@ -390,7 +414,7 @@ public class JByteMod extends JFrame implements IDropUser {
 		mntmRenameSourcefilesTo = new JMenuItem("Rename SourceFiles to debug");
 		mntmRenameSourcefilesTo.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				
+
 				if (JOptionPane.showConfirmDialog(JByteMod.this,
 						"Are you sure that you want to rename all SourceFile attributes to debug names?", "Confirm",
 						JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
@@ -418,7 +442,7 @@ public class JByteMod extends JFrame implements IDropUser {
 		chckbxmntmDeclarationTreeSelection = new JCheckBoxMenuItem("Declaration Tree Selection");
 		chckbxmntmDeclarationTreeSelection.setSelected(true);
 		mnSettings.add(chckbxmntmDeclarationTreeSelection);
-		
+
 		chckbxmntmBytecodeDragAnd = new JCheckBoxMenuItem("Bytecode Drag and Drop");
 		chckbxmntmBytecodeDragAnd.setSelected(true);
 		mnSettings.add(chckbxmntmBytecodeDragAnd);
@@ -455,7 +479,6 @@ public class JByteMod extends JFrame implements IDropUser {
 				SortedTreeNode node = (SortedTreeNode) fileTree.getLastSelectedPathComponent();
 				if (node == null)
 					return;
-				System.out.println(node.getCn());
 				if (node.getCn() != null && node.getMn() != null) {
 					decompileMethod(node.getCn(), node.getMn());
 				} else if (node.getCn() != null) {
@@ -609,10 +632,12 @@ public class JByteMod extends JFrame implements IDropUser {
 		DefaultListModel<ListEntry> lm = (DefaultListModel<ListEntry>) codeList.getModel();
 		lm.clear();
 		rightDesc.setText(cn.name + "." + mn.name + mn.desc);
+		this.lastList = new ArrayList<InsnListEntry>();
 		for (AbstractInsnNode ain : mn.instructions.toArray()) {
-			lm.addElement(new InsnListEntry(mn, ain));
+			InsnListEntry entry = new InsnListEntry(mn, ain);
+			lm.addElement(entry);
+			this.lastList.add(entry);
 		}
-
 		DefaultListModel<TCBListEntry> lm2 = (DefaultListModel<TCBListEntry>) tcbList.getModel();
 		lm2.clear();
 		tcbDesc.setText("Try Catch Blocks: " + cn.name + "." + mn.name + mn.desc);
@@ -900,6 +925,7 @@ public class JByteMod extends JFrame implements IDropUser {
 	}
 
 	private void selectTreeMethod(ClassNode cn, MethodNode mn) {
+		//thread because this could take some time on big classes
 		new Thread(() -> {
 			DefaultTreeModel tm = (DefaultTreeModel) fileTree.getModel();
 			selectEntry(mn, tm, (SortedTreeNode) tm.getRoot());
@@ -946,6 +972,10 @@ public class JByteMod extends JFrame implements IDropUser {
 			lm.addElement(new InsnListEntry(mn, ain));
 		}
 		codeList.setModel(lm);
+		DndMouseAdapter adapter = new DndMouseAdapter(codeList);
+		//dont forget to add drag n drop listeners
+		codeList.addMouseListener(adapter);
+		codeList.addMouseMotionListener(adapter);
 		if (chckbxmntmRefreshDecompiler.isSelected()) {
 			if (chckbxmntmDecompile.isSelected()) {
 				new DecompileMethodThread(mn).start();
@@ -993,5 +1023,16 @@ public class JByteMod extends JFrame implements IDropUser {
 
 	public boolean editorDnd() {
 		return chckbxmntmBytecodeDragAnd.isSelected();
+	}
+
+	public void createUndoBackup() {
+		//used for the undo button
+		this.lastList = new ArrayList<InsnListEntry>();
+		DefaultListModel<ListEntry> lm = (DefaultListModel<ListEntry>) codeList.getModel();
+		for (int i = 0; i < lm.getSize(); i++) {
+			ListEntry entry = lm.getElementAt(i);
+			this.lastList.add((InsnListEntry) entry);
+		}
+		mntmUndo.setEnabled(true);
 	}
 }
