@@ -84,7 +84,7 @@ public class JarUtils {
 							classes.put(cn.name, cn);
 							cn.preLoad = bytes;
 						}
-					} catch (Exception e) {
+					} catch (Throwable e) {
 						e.printStackTrace();
 					}
 				}

@@ -32,10 +32,10 @@ public class DndMouseAdapter extends MouseInputAdapter {
 
 	@Override
 	public void mouseReleased(MouseEvent e) {
-		if(mouseDragging) {
+		if (mouseDragging && dragSourceIndex < myListModel.size()) {
 			Object dragElement = myListModel.get(dragSourceIndex);
-			if(dragElement instanceof InsnListEntry) {
-				((InsnListEntry)dragElement).dragging = false;
+			if (dragElement instanceof InsnListEntry) {
+				((InsnListEntry) dragElement).dragging = false;
 			}
 			mouseDragging = false;
 		}
@@ -46,15 +46,15 @@ public class DndMouseAdapter extends MouseInputAdapter {
 		if (mouseDragging && JByteMod.instance.editorDnd()) {
 			int currentIndex = myList.locationToIndex(e.getPoint());
 			if (currentIndex != dragSourceIndex) {
-				if(!backup) {
+				if (!backup) {
 					JByteMod.instance.createUndoBackup();
 					backup = true;
 					System.out.println("yes");
 				}
 				int dragTargetIndex = myList.getSelectedIndex();
 				Object dragElement = myListModel.get(dragSourceIndex);
-				if(dragElement instanceof InsnListEntry) {
-					((InsnListEntry)dragElement).dragging = true;
+				if (dragElement instanceof InsnListEntry) {
+					((InsnListEntry) dragElement).dragging = true;
 				}
 				myListModel.remove(dragSourceIndex);
 				myListModel.add(dragTargetIndex, dragElement);

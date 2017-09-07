@@ -68,6 +68,7 @@ import me.lpk.gui.drop.IDropUser;
 import me.lpk.gui.drop.JarDropHandler;
 import me.lpk.util.JarUtils;
 import me.lpk.util.OpUtils;
+import me.noverify.gui.JAccessHelper;
 import me.noverify.list.CellRenderer;
 import me.noverify.list.DndMouseAdapter;
 import me.noverify.list.FieldListEntry;
@@ -125,6 +126,8 @@ public class JByteMod extends JFrame implements IDropUser {
 	private JCheckBoxMenuItem chckbxmntmBytecodeDragAnd;
 	private JMenuItem mntmUndo;
 	private ArrayList<InsnListEntry> lastList;
+	private JMenuItem mntmAccessHelper;
+	private JMenu mnHelpers;
 
 	/**
 	 * Launch the application.
@@ -426,6 +429,18 @@ public class JByteMod extends JFrame implements IDropUser {
 			}
 		});
 		mnNewMenu.add(mntmRenameSourcefilesTo);
+		
+		mnHelpers = new JMenu("Helpers");
+		mnTools.add(mnHelpers);
+		
+		mntmAccessHelper = new JMenuItem("Access Helper");
+		mnHelpers.add(mntmAccessHelper);
+		mntmAccessHelper.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				new JAccessHelper().setVisible(true);
+			}
+		});
+		mntmAccessHelper.setAccelerator(KeyStroke.getKeyStroke('A', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 
 		mnSettings = new JMenu("Settings");
 		menuBar.add(mnSettings);
