@@ -23,11 +23,13 @@ import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.IincInsnNode;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.IntInsnNode;
+import org.objectweb.asm.tree.InvokeDynamicInsnNode;
 import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TableSwitchInsnNode;
 import org.objectweb.asm.tree.TypeInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
@@ -58,6 +60,9 @@ public class EditDialogue {
 		opc.put(JumpInsnNode.class.getSimpleName(), new String[] { "ifeq", "ifne", "iflt", "ifge", "ifgt", "ifle", "if_icmpeq", "if_icmpne",
 				"if_icmplt", "if_icmpge", "if_icmpgt", "if_icmple", "if_acmpeq", "if_acmpne", "goto", "jsr", "ifnull", "ifnonnull" });
 		opc.put(IntInsnNode.class.getSimpleName(), new String[] { "bipush", "sipush", "newarray" });
+		opc.put(InvokeDynamicInsnNode.class.getSimpleName(), new String[] { "invokedynamic" });
+		opc.put(TableSwitchInsnNode.class.getSimpleName(), new String[] { "tableswitch" });
+
 	}
 
 	/**
@@ -104,6 +109,18 @@ public class EditDialogue {
 				JFormattedTextField field = new JFormattedTextField(formatter);
 				field.setValue(f.get(ain));
 				input.add(field);
+			} else if (f.getGenericType().getTypeName().equals("org.objectweb.asm.tree.LabelNode")) {
+				ArrayList<LabelNode> ln = new ArrayList<>();
+				for (AbstractInsnNode nod : mn.instructions.toArray()) {
+					if (nod instanceof LabelNode) {
+						ln.add((LabelNode) nod);
+					}
+				}
+				fieldNames.put(f.getName(), "label");
+				labels.add(new JLabel("Insert " + toUp(f.getName()) + ": "));
+				JComboBox<LabelNode> jcb = new JComboBox<>(ln.toArray(new LabelNode[0]));
+				jcb.setSelectedItem(f.get(ain));
+				input.add(jcb);
 			} else {
 				System.out.println("Unallowed edit:" + f.getName() + " " + f.getGenericType().getTypeName());
 			}
@@ -131,21 +148,6 @@ public class EditDialogue {
 				fieldNames.put("ldcvalue", "");
 				labels.add(new JLabel("Insert Ldc Value: "));
 				input.add(new JTextField(ldc.cst.toString()));
-			}
-			//Special case for jump
-			if (ain.getClass().getSimpleName().equals(JumpInsnNode.class.getSimpleName())) {
-				ArrayList<LabelNode> ln = new ArrayList<>();
-				for (AbstractInsnNode nod : mn.instructions.toArray()) {
-					if (nod instanceof LabelNode) {
-						ln.add((LabelNode) nod);
-					}
-				}
-				JumpInsnNode jin = (JumpInsnNode) ain;
-				fieldNames.put("jumplabel", "");
-				labels.add(new JLabel("Jump to Label: "));
-				JComboBox<LabelNode> jcb = new JComboBox<>(ln.toArray(new LabelNode[0]));
-				jcb.setSelectedItem(jin.label);
-				input.add(jcb);
 			}
 		}
 
@@ -183,11 +185,6 @@ public class EditDialogue {
 						error("Value not capable for type " + jcb.getSelectedItem().toString() + ": \"" + cst.getText() + "\"");
 					}
 					i++;
-				} else if (fn.equals("jumplabel")) {
-					JComboBox<String> jcb = (JComboBox<String>) input.getComponent(i);
-					JumpInsnNode jin = (JumpInsnNode) ain;
-					jin.label = (LabelNode) jcb.getSelectedItem();
-					i++;
 				} else {
 					String type = fieldNames.get(fn);
 					if (type.equals("String")) {
@@ -203,6 +200,12 @@ public class EditDialogue {
 						Field f = ain.getClass().getDeclaredField(fn);
 						f.setAccessible(true);
 						f.set(ain, val);
+						i++;
+					} else if (type.equals("label")) {
+						JComboBox<String> jcb = (JComboBox<String>) input.getComponent(i);
+						Field f = ain.getClass().getDeclaredField(fn);
+						f.setAccessible(true);
+						f.set(ain, jcb.getSelectedItem());
 						i++;
 					}
 				}

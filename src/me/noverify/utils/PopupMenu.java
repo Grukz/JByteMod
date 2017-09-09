@@ -4,6 +4,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import javax.swing.JList;
@@ -13,6 +14,7 @@ import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 
 import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import me.noverify.JByteMod;
@@ -22,7 +24,7 @@ import me.noverify.list.ListEntry;
 
 public class PopupMenu {
 	public static void showPopupInsn(MouseEvent e, JList codeList) {
-		//		codeList.setSelectedIndex(codeList.locationToIndex(e.getPoint()));
+		//codeList.setSelectedIndex(codeList.locationToIndex(e.getPoint()));
 		List<ListEntry> entries = codeList.getSelectedValuesList();
 		if (entries.size() == 1) {
 			ListEntry entr = (ListEntry) codeList.getSelectedValue();
@@ -55,6 +57,23 @@ public class PopupMenu {
 					}
 				});
 				menu.add(edit);
+				JMenuItem duplicate = new JMenuItem("Duplicate");
+				duplicate.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent e) {
+						try {
+							JByteMod.instance.createUndoBackup();
+							if (ain instanceof LabelNode) {
+								mn.instructions.insert(ain, new LabelNode());
+							} else {
+								mn.instructions.insert(ain, ain.clone(new HashMap<>()));
+							}
+							JByteMod.instance.reloadList(mn);
+						} catch (Exception e1) {
+							e1.printStackTrace();
+						}
+					}
+				});
+				menu.add(duplicate);
 				JMenuItem up = new JMenuItem("Move up");
 				up.addActionListener(new ActionListener() {
 					public void actionPerformed(ActionEvent e) {
@@ -136,8 +155,7 @@ public class PopupMenu {
 				}
 			});
 			menu.add(remove);
-			menu.show(JByteMod.instance, (int) JByteMod.instance.getMousePosition().getX(),
-					(int) JByteMod.instance.getMousePosition().getY());
+			menu.show(JByteMod.instance, (int) JByteMod.instance.getMousePosition().getX(), (int) JByteMod.instance.getMousePosition().getY());
 		}
 	}
 }

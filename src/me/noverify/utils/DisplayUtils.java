@@ -4,14 +4,17 @@ import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.IincInsnNode;
+import org.objectweb.asm.tree.InvokeDynamicInsnNode;
 import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.LineNumberNode;
 import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.TableSwitchInsnNode;
 import org.objectweb.asm.tree.TypeInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
+import me.lpk.util.AccessHelper;
 import me.lpk.util.OpUtils;
 
 public class DisplayUtils {
@@ -39,7 +42,12 @@ public class DisplayUtils {
 			break;
 		case AbstractInsnNode.TYPE_INSN:
 			TypeInsnNode tin = (TypeInsnNode) ain;
-			opc += getDisplayType(TextUtils.escape(tin.desc));
+			String esc = TextUtils.escape(tin.desc);
+			if (esc.endsWith(";") && esc.startsWith("L")) {
+				opc += TextUtils.addTag(esc, "font color=#557799");
+			} else {
+				opc += getDisplayClass(esc);
+			}
 			break;
 		case AbstractInsnNode.JUMP_INSN:
 			JumpInsnNode jin = (JumpInsnNode) ain;
@@ -64,6 +72,24 @@ public class DisplayUtils {
 		case AbstractInsnNode.FRAME:
 			FrameNode fn = (FrameNode) ain;
 			opc = TextUtils.toLight(OpUtils.getOpcodeText(fn.type).toLowerCase() + " " + fn.local.size() + " " + fn.stack.size());
+			break;
+		case AbstractInsnNode.TABLESWITCH_INSN:
+			TableSwitchInsnNode tsin = (TableSwitchInsnNode) ain;
+			if (tsin.dflt != null) {
+				opc += TextUtils.addTag("L" + OpUtils.getLabelIndex(tsin.dflt), "font color=#995555");
+			}
+			if (tsin.labels.size() < 20) {
+				for (LabelNode l : tsin.labels) {
+					opc += " " + TextUtils.addTag("L" + OpUtils.getLabelIndex(l), "font color=#557799");
+				}
+			} else {
+				opc += " " + TextUtils.addTag(tsin.labels.size() + " cases", "font color=#557799");
+			}
+			break;
+		case AbstractInsnNode.INVOKE_DYNAMIC_INSN:
+			InvokeDynamicInsnNode idin = (InvokeDynamicInsnNode) ain;
+			System.out.println(idin.desc);
+			opc += TextUtils.addTag(TextUtils.escape(idin.name), "font color=#557799") + " " + TextUtils.escape(idin.desc);
 			break;
 		}
 		return opc;

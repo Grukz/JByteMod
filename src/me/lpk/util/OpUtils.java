@@ -520,7 +520,15 @@ public class OpUtils implements org.objectweb.asm.Opcodes {
 		return index;
 	}
 
+	/**
+	 * save to avoid lag
+	 */
+	public static HashMap<AbstractInsnNode, Integer> labelCache = new HashMap<>();
+
 	public static int getLabelIndex(AbstractInsnNode ain) {
+		if (labelCache.containsKey(ain)) {
+			return labelCache.get(ain);
+		}
 		int index = 0;
 		while (ain.getPrevious() != null) {
 			ain = ain.getPrevious();
@@ -528,7 +536,12 @@ public class OpUtils implements org.objectweb.asm.Opcodes {
 				index += 1;
 			}
 		}
+		labelCache.put(ain, index);
 		return index;
+	}
+
+	public static void clearLabelCache() {
+		labelCache.clear();
 	}
 
 	/**

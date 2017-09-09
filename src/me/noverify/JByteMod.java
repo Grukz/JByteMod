@@ -59,6 +59,7 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.InsnList;
+import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -128,6 +129,7 @@ public class JByteMod extends JFrame implements IDropUser {
 	private ArrayList<InsnListEntry> lastList;
 	private JMenuItem mntmAccessHelper;
 	private JMenu mnHelpers;
+	private JCheckBoxMenuItem chckbxmntmSpeedUpLabel;
 
 	/**
 	 * Launch the application.
@@ -168,7 +170,7 @@ public class JByteMod extends JFrame implements IDropUser {
 			}
 		});
 		setBounds(100, 100, 1280, 720);
-		setTitle("JByteMod v0.5.5");
+		setTitle("JByteMod v0.5.6");
 
 		menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
@@ -429,10 +431,10 @@ public class JByteMod extends JFrame implements IDropUser {
 			}
 		});
 		mnNewMenu.add(mntmRenameSourcefilesTo);
-		
+
 		mnHelpers = new JMenu("Helpers");
 		mnTools.add(mnHelpers);
-		
+
 		mntmAccessHelper = new JMenuItem("Access Helper");
 		mnHelpers.add(mntmAccessHelper);
 		mntmAccessHelper.addActionListener(new ActionListener() {
@@ -440,7 +442,6 @@ public class JByteMod extends JFrame implements IDropUser {
 				new JAccessHelper().setVisible(true);
 			}
 		});
-		mntmAccessHelper.setAccelerator(KeyStroke.getKeyStroke('A', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 
 		mnSettings = new JMenu("Settings");
 		menuBar.add(mnSettings);
@@ -461,6 +462,10 @@ public class JByteMod extends JFrame implements IDropUser {
 		chckbxmntmBytecodeDragAnd = new JCheckBoxMenuItem("Bytecode Drag and Drop");
 		chckbxmntmBytecodeDragAnd.setSelected(true);
 		mnSettings.add(chckbxmntmBytecodeDragAnd);
+
+		chckbxmntmSpeedUpLabel = new JCheckBoxMenuItem("Speed Up Label Detection");
+		chckbxmntmSpeedUpLabel.setSelected(true);
+		mnSettings.add(chckbxmntmSpeedUpLabel);
 
 		mnDecompiler = new JMenu("Decompiler");
 		mnSettings.add(mnDecompiler);
@@ -644,6 +649,10 @@ public class JByteMod extends JFrame implements IDropUser {
 	}
 
 	protected void decompileMethod(ClassNode cn, MethodNode mn) {
+		OpUtils.clearLabelCache();
+		if (chckbxmntmSpeedUpLabel.isSelected()) {
+			this.scanLabelNums(mn);
+		}
 		DefaultListModel<ListEntry> lm = (DefaultListModel<ListEntry>) codeList.getModel();
 		lm.clear();
 		rightDesc.setText(cn.name + "." + mn.name + mn.desc);
@@ -668,6 +677,9 @@ public class JByteMod extends JFrame implements IDropUser {
 		return chckbxmntmDecompileHugeCode.isSelected();
 	}
 
+	/**
+	 * Opens the file chooser to load .jar / .zip files
+	 */
 	protected void openFileChooserLoad() {
 		JFileChooser jfc = new JFileChooser(new File(System.getProperty("user.home") + "/Desktop"));
 		jfc.setAcceptAllFileFilterUsed(false);
@@ -677,10 +689,13 @@ public class JByteMod extends JFrame implements IDropUser {
 			File input = jfc.getSelectedFile();
 			this.opened = input;
 			System.out.println("Selected input jar: " + input.getAbsolutePath());
-			loadJarFile(input);
+			this.loadJarFile(input);
 		}
 	}
 
+	/**
+	 * Opens the file chooser to save
+	 */
 	protected void saveAsFileChooser() {
 		JFileChooser jfc = new JFileChooser(new File(System.getProperty("user.home") + "/Desktop"));
 		jfc.setAcceptAllFileFilterUsed(false);
@@ -719,6 +734,9 @@ public class JByteMod extends JFrame implements IDropUser {
 		}
 	}
 
+	/**
+	 * Initializes the file tree with all class nodes
+	 */
 	private void setupTree() {
 		DefaultTreeModel tm = (DefaultTreeModel) fileTree.getModel();
 		SortedTreeNode root = (SortedTreeNode) tm.getRoot();
@@ -827,6 +845,9 @@ public class JByteMod extends JFrame implements IDropUser {
 		}
 	}
 
+	/**
+	 * Initializes the tabbed pane with all windows
+	 */
 	private void setupTabs() {
 		codeList = new JList<ListEntry>(new DefaultListModel());
 		codeList.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 13));
@@ -920,8 +941,17 @@ public class JByteMod extends JFrame implements IDropUser {
 			e1.printStackTrace();
 		}
 		RTextScrollPane scp = new RTextScrollPane(ffArea);
-		scp.setColumnHeaderView(new JLabel("Fernflower Decompiler"));
-		rightSide.addTab("Decompiler", scp);
+//		scp.setColumnHeaderView(new JLabel("Fernflower Decompiler"));
+		JPanel dec = new JPanel();
+		dec.setLayout(new BorderLayout(0, 0));
+		JPanel declp = new JPanel();
+		declp.setBorder(new EmptyBorder(1, 5, 0, 5));
+		declp.setLayout(new GridLayout());
+		declp.add(new JLabel("Fernflower Decompiler"));
+		dec.add(declp, BorderLayout.NORTH);
+		dec.add(scp, BorderLayout.CENTER);
+		dec.setEnabled(false);
+		rightSide.addTab("Decompiler", dec);
 
 		JPanel search = new JPanel();
 		search.setLayout(new BorderLayout(0, 0));
@@ -940,17 +970,17 @@ public class JByteMod extends JFrame implements IDropUser {
 	}
 
 	private void selectTreeMethod(ClassNode cn, MethodNode mn) {
-		//thread because this could take some time on big classes
+		//uses thread because this could take some time on big classes
 		new Thread(() -> {
 			DefaultTreeModel tm = (DefaultTreeModel) fileTree.getModel();
-			selectEntry(mn, tm, (SortedTreeNode) tm.getRoot());
+			this.selectEntry(mn, tm, (SortedTreeNode) tm.getRoot());
 		}).start();
 	}
 
 	private void selectTreeClass(ClassNode cn) {
 		new Thread(() -> {
 			DefaultTreeModel tm = (DefaultTreeModel) fileTree.getModel();
-			selectEntry(cn, tm, (SortedTreeNode) tm.getRoot());
+			this.selectEntry(cn, tm, (SortedTreeNode) tm.getRoot());
 		}).start();
 	}
 
@@ -981,6 +1011,10 @@ public class JByteMod extends JFrame implements IDropUser {
 	}
 
 	public void reloadList(MethodNode mn) {
+		OpUtils.clearLabelCache();
+		if (chckbxmntmSpeedUpLabel.isSelected()) {
+			this.scanLabelNums(mn);
+		}
 		//create new model because using old one is slow
 		DefaultListModel<ListEntry> lm = new DefaultListModel<ListEntry>();
 		for (AbstractInsnNode ain : mn.instructions.toArray()) {
@@ -988,12 +1022,24 @@ public class JByteMod extends JFrame implements IDropUser {
 		}
 		codeList.setModel(lm);
 		DndMouseAdapter adapter = new DndMouseAdapter(codeList);
-		//dont forget to add drag n drop listeners
+		//don't forget to add drag n drop listeners
 		codeList.addMouseListener(adapter);
 		codeList.addMouseMotionListener(adapter);
 		if (chckbxmntmRefreshDecompiler.isSelected()) {
 			if (chckbxmntmDecompile.isSelected()) {
 				new DecompileMethodThread(mn).start();
+			}
+		}
+	}
+
+	/**
+	 * Detect all label numbers at once instead of separately
+	 */
+	private void scanLabelNums(MethodNode mn) {
+		int i = 0;
+		for (AbstractInsnNode ain : mn.instructions.toArray()) {
+			if (ain instanceof LabelNode) {
+				OpUtils.labelCache.put(ain, i++);
 			}
 		}
 	}
