@@ -1,7 +1,7 @@
-# JByteMod 0.5.2
+# JByteMod 0.5.6
 ## The successor of JBytedit
 A tool made by GraxCode to edit java bytecode based on JBytedit by QMatt.
-Now with live decompiling using Fernflower
+Now with live decompiling using Fernflower Decompiler
 
 #### Todo-List
 - Inserting nodes (done)
@@ -13,5 +13,8 @@ Now with live decompiling using Fernflower
 - Editing frames
 - Fernflower options
 
-
+Libraries Used:
+- Apache Commons IO
+- Objectweb ASM
+- RSyntaxTextArea
 
