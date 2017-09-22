@@ -1,4 +1,8 @@
 # JByteMod 0.5.6
+
+Please visit JByteMod-Beta: https://github.com/GraxCode/JByteMod-Beta
+This repo wont be updated anymore!
+
 ## The successor of JBytedit
 A tool made by GraxCode to edit java bytecode based on JBytedit by QMatt.
 Now with live decompiling using Fernflower Decompiler
@@ -17,4 +21,3 @@ Libraries Used:
 - Apache Commons IO
 - Objectweb ASM
 - RSyntaxTextArea
-
